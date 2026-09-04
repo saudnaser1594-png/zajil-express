@@ -3,13 +3,17 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+const String supabaseUrl = 'https://fpufamgncxusgvxiiucg.supabase.co';
+
+// ضع هنا anon key الخاص بمشروع Supabase
+const String supabaseAnonKey = 'YOUR_SUPABASE_ANON_KEY';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Supabase.initialize(
-    url: 'https://fpufamgncxusgvxiiucg.supabase.co',
-    anonKey:
-        'EyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwdWZhbWduY3h1c2d2eGlpdWNnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxOTQ0NTEsImV4cCI6MjEwMzc3MDQ1MX0.l9vS4MWlom8jqBhoc2T9gGc0MALtzkKxevBqjjPll5I',
+    url: supabaseUrl,
+    anonKey: supabaseAnonKey,
   );
 
   runApp(const ZajilFinancialApp());
@@ -23,17 +27,14 @@ class ZajilFinancialApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'زاجل - السجلات المالية',
       debugShowCheckedModeBanner: false,
+      title: 'Zajil Express Trading',
       theme: ThemeData(
         useMaterial3: true,
-        colorSchemeSeed: Colors.green,
         fontFamily: 'Arial',
+        colorSchemeSeed: Colors.blue,
       ),
-      home: const Directionality(
-        textDirection: TextDirection.rtl,
-        child: AuthGate(),
-      ),
+      home: const AuthGate(),
     );
   }
 }
@@ -52,18 +53,18 @@ class AuthGate extends StatelessWidget {
       builder: (context, snapshot) {
         final session = supabase.auth.currentSession;
 
-        if (session == null) {
-          return const LoginScreen();
+        if (session != null) {
+          return const FinancialRecordScreen();
         }
 
-        return const FinancialRecordScreen();
+        return const LoginScreen();
       },
     );
   }
 }
 
 // ============================================================
-// LOGIN SCREEN
+// LOGIN
 // ============================================================
 
 class LoginScreen extends StatefulWidget {
@@ -78,19 +79,14 @@ class _LoginScreenState extends State<LoginScreen> {
   final passwordController = TextEditingController();
 
   bool loading = false;
-  bool hidePassword = true;
+  bool obscurePassword = true;
 
   Future<void> login() async {
     final email = emailController.text.trim();
     final password = passwordController.text;
 
-    if (email.isEmpty) {
-      showMessage('أدخل البريد الإلكتروني');
-      return;
-    }
-
-    if (password.isEmpty) {
-      showMessage('أدخل كلمة المرور');
+    if (email.isEmpty || password.isEmpty) {
+      showMessage('أدخل البريد الإلكتروني وكلمة المرور');
       return;
     }
 
@@ -107,12 +103,12 @@ class _LoginScreenState extends State<LoginScreen> {
       showMessage(e.message);
     } catch (e) {
       showMessage('حدث خطأ أثناء تسجيل الدخول');
-    } finally {
-      if (mounted) {
-        setState(() {
-          loading = false;
-        });
-      }
+    }
+
+    if (mounted) {
+      setState(() {
+        loading = false;
+      });
     }
   }
 
@@ -133,25 +129,24 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: Center(
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        body: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(24),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(
-                maxWidth: 450,
-              ),
+              constraints: const BoxConstraints(maxWidth: 430),
               child: Card(
-                elevation: 5,
+                elevation: 8,
                 child: Padding(
-                  padding: const EdgeInsets.all(25),
+                  padding: const EdgeInsets.all(28),
                   child: Column(
                     children: [
                       const Icon(
                         Icons.account_balance,
-                        size: 75,
-                        color: Colors.green,
+                        size: 70,
+                        color: Colors.blue,
                       ),
 
                       const SizedBox(height: 15),
@@ -160,7 +155,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         'Zajil Express Trading',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontSize: 24,
+                          fontSize: 25,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -168,7 +163,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 8),
 
                       const Text(
-                        'نظام السجلات المالية',
+                        'النظام المالي',
                         style: TextStyle(
                           fontSize: 18,
                         ),
@@ -178,8 +173,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                       TextField(
                         controller: emailController,
-                        keyboardType:
-                            TextInputType.emailAddress,
+                        keyboardType: TextInputType.emailAddress,
                         decoration: const InputDecoration(
                           labelText: 'البريد الإلكتروني',
                           border: OutlineInputBorder(),
@@ -187,11 +181,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
 
-                      const SizedBox(height: 15),
+                      const SizedBox(height: 16),
 
                       TextField(
                         controller: passwordController,
-                        obscureText: hidePassword,
+                        obscureText: obscurePassword,
                         decoration: InputDecoration(
                           labelText: 'كلمة المرور',
                           border: const OutlineInputBorder(),
@@ -199,19 +193,20 @@ class _LoginScreenState extends State<LoginScreen> {
                           suffixIcon: IconButton(
                             onPressed: () {
                               setState(() {
-                                hidePassword = !hidePassword;
+                                obscurePassword = !obscurePassword;
                               });
                             },
                             icon: Icon(
-                              hidePassword
+                              obscurePassword
                                   ? Icons.visibility
                                   : Icons.visibility_off,
                             ),
                           ),
                         ),
+                        onSubmitted: (_) => login(),
                       ),
 
-                      const SizedBox(height: 25),
+                      const SizedBox(height: 24),
 
                       SizedBox(
                         width: double.infinity,
@@ -219,18 +214,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: ElevatedButton(
                           onPressed: loading ? null : login,
                           child: loading
-                              ? const SizedBox(
-                                  width: 25,
-                                  height: 25,
-                                  child:
-                                      CircularProgressIndicator(),
-                                )
+                              ? const CircularProgressIndicator()
                               : const Text(
                                   'تسجيل الدخول',
-                                  style: TextStyle(
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                  style: TextStyle(fontSize: 17),
                                 ),
                         ),
                       ),
@@ -247,7 +234,7 @@ class _LoginScreenState extends State<LoginScreen> {
 }
 
 // ============================================================
-// FINANCIAL RECORD SCREEN
+// MAIN SCREEN
 // ============================================================
 
 class FinancialRecordScreen extends StatefulWidget {
@@ -260,38 +247,26 @@ class FinancialRecordScreen extends StatefulWidget {
 
 class _FinancialRecordScreenState
     extends State<FinancialRecordScreen> {
-  final formKey = GlobalKey<FormState>();
-
-  final dateController = TextEditingController();
   final branchController = TextEditingController();
-
-  final posSalesController =
-      TextEditingController(text: '0');
-
-  final requiredDepositController =
-      TextEditingController(text: '0');
-
-  final totalController =
-      TextEditingController(text: '0.00');
-
-  final actualDepositController =
-      TextEditingController(text: '0');
-
+  final posSalesController = TextEditingController();
+  final requiredDepositController = TextEditingController();
+  final totalController = TextEditingController();
+  final actualDepositController = TextEditingController();
   final notesController = TextEditingController();
 
-  PlatformFile? imageFile;
-  PlatformFile? documentFile;
+  DateTime selectedDate = DateTime.now();
 
-  bool saving = false;
-  bool loadingRecords = true;
+  PlatformFile? selectedImage;
+  PlatformFile? selectedDocument;
 
   List<Map<String, dynamic>> records = [];
+
+  bool loading = false;
+  bool saving = false;
 
   @override
   void initState() {
     super.initState();
-
-    dateController.text = todayString();
 
     posSalesController.addListener(calculateTotal);
     requiredDepositController.addListener(calculateTotal);
@@ -299,109 +274,122 @@ class _FinancialRecordScreenState
     loadRecords();
   }
 
-  String todayString() {
-    final now = DateTime.now();
-
-    final month =
-        now.month.toString().padLeft(2, '0');
-
-    final day =
-        now.day.toString().padLeft(2, '0');
-
-    return '${now.year}-$month-$day';
-  }
+  // ============================================================
+  // CALCULATE TOTAL
+  // ============================================================
 
   void calculateTotal() {
     final posSales =
-        double.tryParse(
-              posSalesController.text,
-            ) ??
-            0;
+        double.tryParse(posSalesController.text.trim()) ?? 0;
 
     final requiredDeposit =
-        double.tryParse(
-              requiredDepositController.text,
-            ) ??
-            0;
+        double.tryParse(requiredDepositController.text.trim()) ?? 0;
 
     final total = posSales + requiredDeposit;
 
     totalController.text = total.toStringAsFixed(2);
   }
 
-  Future<void> pickImage() async {
-    try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.image,
-        withData: true,
-      );
+  // ============================================================
+  // LOAD RECORDS
+  // ============================================================
 
-      if (result == null || result.files.isEmpty) {
-        return;
-      }
-
-      setState(() {
-        imageFile = result.files.first;
-      });
-    } catch (e) {
-      showMessage('تعذر اختيار الصورة');
-    }
-  }
-
-  Future<void> pickDocument() async {
-    try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: [
-          'pdf',
-          'xls',
-          'xlsx',
-          'doc',
-          'docx',
-        ],
-        withData: true,
-      );
-
-      if (result == null || result.files.isEmpty) {
-        return;
-      }
-
-      setState(() {
-        documentFile = result.files.first;
-      });
-    } catch (e) {
-      showMessage('تعذر اختيار المستند');
-    }
-  }
-
-  Future<String> uploadFile({
-    required PlatformFile file,
-    required String bucket,
-  }) async {
+  Future<void> loadRecords() async {
     final user = supabase.auth.currentUser;
 
-    if (user == null) {
-      throw Exception('المستخدم غير مسجل الدخول');
+    if (user == null) return;
+
+    setState(() {
+      loading = true;
+    });
+
+    try {
+      final result = await supabase
+          .from('financial_records')
+          .select()
+          .eq('user_id', user.id)
+          .order('transaction_date', ascending: false);
+
+      records = List<Map<String, dynamic>>.from(result);
+    } catch (e) {
+      showMessage('تعذر تحميل السجلات: $e');
     }
 
-    if (file.bytes == null) {
-      throw Exception('تعذر قراءة الملف');
+    if (mounted) {
+      setState(() {
+        loading = false;
+      });
+    }
+  }
+
+  // ============================================================
+  // SELECT IMAGE
+  // ============================================================
+
+  Future<void> pickImage() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      withData: true,
+    );
+
+    if (result == null || result.files.isEmpty) return;
+
+    setState(() {
+      selectedImage = result.files.first;
+    });
+  }
+
+  // ============================================================
+  // SELECT DOCUMENT
+  // ============================================================
+
+  Future<void> pickDocument() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: [
+        'pdf',
+        'xls',
+        'xlsx',
+        'doc',
+        'docx',
+      ],
+      withData: true,
+    );
+
+    if (result == null || result.files.isEmpty) return;
+
+    setState(() {
+      selectedDocument = result.files.first;
+    });
+  }
+
+  // ============================================================
+  // SAFE FILE NAME
+  // ============================================================
+
+  String safeFileName(String name) {
+    return name.replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
+  }
+
+  // ============================================================
+  // UPLOAD IMAGE
+  // ============================================================
+
+  Future<String?> uploadImage(String userId) async {
+    if (selectedImage == null || selectedImage!.bytes == null) {
+      return null;
     }
 
-    final timestamp =
-        DateTime.now().millisecondsSinceEpoch;
-
-    final safeName =
-        file.name.replaceAll(' ', '_');
+    final fileName = safeFileName(selectedImage!.name);
 
     final path =
-        '${user.id}/${timestamp}_$safeName';
+        '$userId/${DateTime.now().millisecondsSinceEpoch}_$fileName';
 
     await supabase.storage
-        .from(bucket)
+        .from('mada-images')
         .uploadBinary(
           path,
-          file.bytes!,
+          selectedImage!.bytes!,
           fileOptions: const FileOptions(
             upsert: false,
           ),
@@ -410,15 +398,61 @@ class _FinancialRecordScreenState
     return path;
   }
 
-  Future<void> saveRecord() async {
-    if (!formKey.currentState!.validate()) {
-      return;
+  // ============================================================
+  // UPLOAD DOCUMENT
+  // ============================================================
+
+  Future<String?> uploadDocument(String userId) async {
+    if (selectedDocument == null ||
+        selectedDocument!.bytes == null) {
+      return null;
     }
 
+    final fileName = safeFileName(selectedDocument!.name);
+
+    final path =
+        '$userId/${DateTime.now().millisecondsSinceEpoch}_$fileName';
+
+    await supabase.storage
+        .from('documents')
+        .uploadBinary(
+          path,
+          selectedDocument!.bytes!,
+          fileOptions: const FileOptions(
+            upsert: false,
+          ),
+        );
+
+    return path;
+  }
+
+  // ============================================================
+  // SAVE RECORD
+  // ============================================================
+
+  Future<void> saveRecord() async {
     final user = supabase.auth.currentUser;
 
     if (user == null) {
       showMessage('يجب تسجيل الدخول أولاً');
+      return;
+    }
+
+    final branch = branchController.text.trim();
+
+    final posSales =
+        double.tryParse(posSalesController.text.trim()) ?? 0;
+
+    final requiredDeposit =
+        double.tryParse(requiredDepositController.text.trim()) ?? 0;
+
+    final totalAmount = posSales + requiredDeposit;
+
+    final actualDeposit =
+        double.tryParse(actualDepositController.text.trim()) ?? 0;
+
+    if (branch.isEmpty) {
+      showMessage('أدخل اسم الفرع');
       return;
     }
 
@@ -430,45 +464,23 @@ class _FinancialRecordScreenState
     String? documentPath;
 
     try {
-      final posSales =
-          double.tryParse(
-                posSalesController.text,
-              ) ??
-              0;
-
-      final requiredDeposit =
-          double.tryParse(
-                requiredDepositController.text,
-              ) ??
-              0;
-
-      final actualDeposit =
-          double.tryParse(
-                actualDepositController.text,
-              ) ??
-              0;
-
-      final totalAmount =
-          posSales + requiredDeposit;
-
-      if (imageFile != null) {
-        imagePath = await uploadFile(
-          file: imageFile!,
-          bucket: 'mada-images',
-        );
+      // رفع صورة إيصال نقاط البيع
+      if (selectedImage != null) {
+        imagePath = await uploadImage(user.id);
       }
 
-      if (documentFile != null) {
-        documentPath = await uploadFile(
-          file: documentFile!,
-          bucket: 'documents',
-        );
+      // رفع مستند التحويل البنكي
+      if (selectedDocument != null) {
+        documentPath = await uploadDocument(user.id);
       }
 
       await supabase.from('financial_records').insert({
         'user_id': user.id,
-        'transaction_date': dateController.text,
-        'branch': branchController.text.trim(),
+        'transaction_date':
+            '${selectedDate.year.toString().padLeft(4, '0')}-'
+            '${selectedDate.month.toString().padLeft(2, '0')}-'
+            '${selectedDate.day.toString().padLeft(2, '0')}',
+        'branch': branch,
         'pos_sales': posSales,
         'required_deposit': requiredDeposit,
         'total_amount': totalAmount,
@@ -480,148 +492,105 @@ class _FinancialRecordScreenState
         'bank_deposit_receipt': documentPath,
       });
 
-      showMessage('تم حفظ السجل بنجاح');
-
       clearForm();
 
       await loadRecords();
+
+      showMessage('تم حفظ السجل بنجاح');
     } catch (e) {
       showMessage('حدث خطأ أثناء الحفظ: $e');
-
-      try {
-        if (imagePath != null) {
-          await supabase.storage
-              .from('mada-images')
-              .remove([imagePath]);
-        }
-
-        if (documentPath != null) {
-          await supabase.storage
-              .from('documents')
-              .remove([documentPath]);
-        }
-      } catch (_) {}
-    } finally {
-      if (mounted) {
-        setState(() {
-          saving = false;
-        });
-      }
-    }
-  }
-
-  Future<void> loadRecords() async {
-    final user = supabase.auth.currentUser;
-
-    if (user == null) {
-      if (mounted) {
-        setState(() {
-          loadingRecords = false;
-        });
-      }
-      return;
     }
 
     if (mounted) {
       setState(() {
-        loadingRecords = true;
+        saving = false;
       });
-    }
-
-    try {
-      final result = await supabase
-          .from('financial_records')
-          .select()
-          .eq('user_id', user.id)
-          .order(
-            'transaction_date',
-            ascending: false,
-          );
-
-      if (mounted) {
-        setState(() {
-          records =
-              List<Map<String, dynamic>>.from(result);
-        });
-      }
-    } catch (e) {
-      showMessage(
-        'تعذر تحميل السجلات: $e',
-      );
-    } finally {
-      if (mounted) {
-        setState(() {
-          loadingRecords = false;
-        });
-      }
     }
   }
 
-  Future<void> openFile({
-    required String bucket,
-    required String path,
-  }) async {
+  // ============================================================
+  // CLEAR FORM
+  // ============================================================
+
+  void clearForm() {
+    branchController.clear();
+    posSalesController.clear();
+    requiredDepositController.clear();
+    totalController.clear();
+    actualDepositController.clear();
+    notesController.clear();
+
+    setState(() {
+      selectedImage = null;
+      selectedDocument = null;
+      selectedDate = DateTime.now();
+    });
+  }
+
+  // ============================================================
+  // SIGNED URL
+  // ============================================================
+
+  Future<void> openStorageFile(
+    String bucket,
+    String path,
+  ) async {
     try {
       final url = await supabase.storage
           .from(bucket)
-          .createSignedUrl(
-            path,
-            300,
-          );
+          .createSignedUrl(path, 300);
 
       final uri = Uri.parse(url);
 
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(
-          uri,
-          mode: LaunchMode.externalApplication,
-        );
-      } else {
-        showMessage('تعذر فتح الملف');
-      }
+      await launchUrl(
+        uri,
+        webOnlyWindowName: '_blank',
+      );
     } catch (e) {
-      showMessage('تعذر فتح الملف: $e');
+      showMessage('تعذر فتح الملف');
     }
   }
+
+  // ============================================================
+  // DELETE RECORD
+  // ============================================================
 
   Future<void> deleteRecord(
     Map<String, dynamic> record,
   ) async {
-    final confirmed =
-        await showDialog<bool>(
+    final id = record['id'];
+
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: const Text('حذف السجل'),
-          content: const Text(
-            'هل أنت متأكد من حذف السجل والمرفقات المرتبطة به؟',
+        return Directionality(
+          textDirection: TextDirection.rtl,
+          child: AlertDialog(
+            title: const Text('حذف السجل'),
+            content: const Text(
+              'هل أنت متأكد من حذف هذا السجل؟',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () =>
+                    Navigator.pop(context, false),
+                child: const Text('إلغاء'),
+              ),
+              ElevatedButton(
+                onPressed: () =>
+                    Navigator.pop(context, true),
+                child: const Text('حذف'),
+              ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context, false);
-              },
-              child: const Text('إلغاء'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context, true);
-              },
-              child: const Text('حذف'),
-            ),
-          ],
         );
       },
     );
 
-    if (confirmed != true) {
-      return;
-    }
+    if (confirmed != true) return;
 
     try {
-      final imagePath =
-          record['pos_receipt_image'];
-
+      final imagePath = record['pos_receipt_image'];
       final documentPath =
           record['bank_deposit_receipt'];
 
@@ -629,62 +598,59 @@ class _FinancialRecordScreenState
           imagePath.toString().isNotEmpty) {
         await supabase.storage
             .from('mada-images')
-            .remove([
-          imagePath.toString(),
-        ]);
+            .remove([imagePath.toString()]);
       }
 
       if (documentPath != null &&
           documentPath.toString().isNotEmpty) {
         await supabase.storage
             .from('documents')
-            .remove([
-          documentPath.toString(),
-        ]);
+            .remove([documentPath.toString()]);
       }
 
       await supabase
           .from('financial_records')
           .delete()
-          .eq(
-            'id',
-            record['id'],
-          );
-
-      showMessage('تم حذف السجل');
+          .eq('id', id);
 
       await loadRecords();
+
+      showMessage('تم حذف السجل');
     } catch (e) {
-      showMessage(
-        'تعذر حذف السجل: $e',
-      );
+      showMessage('تعذر حذف السجل: $e');
     }
   }
 
-  void clearForm() {
-    dateController.text = todayString();
-    branchController.clear();
-    posSalesController.text = '0';
-    requiredDepositController.text = '0';
-    totalController.text = '0.00';
-    actualDepositController.text = '0';
-    notesController.clear();
+  // ============================================================
+  // LOGOUT
+  // ============================================================
 
-    setState(() {
-      imageFile = null;
-      documentFile = null;
-    });
+  Future<void> logout() async {
+    await supabase.auth.signOut();
   }
 
-  String money(dynamic value) {
-    final number =
-        double.tryParse(
-              value.toString(),
-            ) ??
-            0;
+  // ============================================================
+  // DATE PICKER
+  // ============================================================
 
-    return '${number.toStringAsFixed(2)} ريال';
+  Future<void> selectDate() async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+    );
+
+    if (date != null) {
+      setState(() {
+        selectedDate = date;
+      });
+    }
   }
+
+  // ============================================================
+  // MESSAGE
+  // ============================================================
 
   void showMessage(String message) {
     if (!mounted) return;
@@ -696,554 +662,456 @@ class _FinancialRecordScreenState
     );
   }
 
+  // ============================================================
+  // DISPOSE
+  // ============================================================
+
+  @override
+  void dispose() {
+    branchController.dispose();
+    posSalesController.dispose();
+    requiredDepositController.dispose();
+    totalController.dispose();
+    actualDepositController.dispose();
+    notesController.dispose();
+
+    super.dispose();
+  }
+
+  // ============================================================
+  // BUILD
+  // ============================================================
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'نظام السجلات المالية',
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text(
+            'النظام المالي',
+          ),
+          actions: [
+            IconButton(
+              tooltip: 'تحديث',
+              onPressed: loadRecords,
+              icon: const Icon(Icons.refresh),
+            ),
+            IconButton(
+              tooltip: 'تسجيل الخروج',
+              onPressed: logout,
+              icon: const Icon(Icons.logout),
+            ),
+          ],
         ),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            tooltip: 'تحديث',
-            onPressed: loadRecords,
-            icon: const Icon(Icons.refresh),
-          ),
-          IconButton(
-            tooltip: 'تسجيل الخروج',
-            onPressed: () async {
-              await supabase.auth.signOut();
-            },
-            icon: const Icon(Icons.logout),
-          ),
-        ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: loadRecords,
-        child: SingleChildScrollView(
-          physics:
-              const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(16),
-          child: Center(
-            child: ConstrainedBox(
-              constraints:
-                  const BoxConstraints(
-                maxWidth: 900,
-              ),
-              child: Form(
-                key: formKey,
-                child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.stretch,
-                  children: [
-                    const Text(
-                      'إضافة سجل مالي جديد',
-                      style: TextStyle(
-                        fontSize: 25,
-                        fontWeight:
-                            FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    TextFormField(
-                      controller:
-                          dateController,
-                      readOnly: true,
-                      decoration:
-                          const InputDecoration(
-                        labelText:
-                            'تاريخ العملية',
-                        border:
-                            OutlineInputBorder(),
-                        prefixIcon:
-                            Icon(
-                          Icons.calendar_today,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 15),
-                    TextFormField(
-                      controller:
-                          branchController,
-                      decoration:
-                          const InputDecoration(
-                        labelText: 'الفرع',
-                        hintText:
-                            'اكتب اسم الفرع',
-                        border:
-                            OutlineInputBorder(),
-                        prefixIcon:
-                            Icon(
-                          Icons.business,
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value == null ||
-                            value.trim().isEmpty) {
-                          return 'اكتب اسم الفرع';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 15),
-                    TextFormField(
-                      controller:
-                          posSalesController,
-                      keyboardType:
-                          const TextInputType
-                              .numberWithOptions(
-                        decimal: true,
-                      ),
-                      decoration:
-                          const InputDecoration(
-                        labelText:
-                            'مبيعات POS',
-                        border:
-                            OutlineInputBorder(),
-                        prefixIcon:
-                            Icon(
-                          Icons.point_of_sale,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 15),
-                    TextFormField(
-                      controller:
-                          requiredDepositController,
-                      keyboardType:
-                          const TextInputType
-                              .numberWithOptions(
-                        decimal: true,
-                      ),
-                      decoration:
-                          const InputDecoration(
-                        labelText:
-                            'المبلغ المطلوب تحويله للبنك',
-                        border:
-                            OutlineInputBorder(),
-                        prefixIcon:
-                            Icon(
-                          Icons.account_balance,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 15),
-                    TextFormField(
-                      controller:
-                          totalController,
-                      readOnly: true,
-                      decoration:
-                          const InputDecoration(
-                        labelText:
-                            'الإجمالي',
-                        border:
-                            OutlineInputBorder(),
-                        prefixIcon:
-                            Icon(
-                          Icons.calculate,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 15),
-                    TextFormField(
-                      controller:
-                          actualDepositController,
-                      keyboardType:
-                          const TextInputType
-                              .numberWithOptions(
-                        decimal: true,
-                      ),
-                      decoration:
-                          const InputDecoration(
-                        labelText:
-                            'مبلغ الإيداع الفعلي',
-                        border:
-                            OutlineInputBorder(),
-                        prefixIcon:
-                            Icon(
-                          Icons.payments,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 15),
-                    TextFormField(
-                      controller:
-                          notesController,
-                      maxLines: 3,
-                      decoration:
-                          const InputDecoration(
-                        labelText:
-                            'ملاحظات',
-                        hintText:
-                            'اكتب أي ملاحظات إضافية',
-                        border:
-                            OutlineInputBorder(),
-                        prefixIcon:
-                            Icon(
-                          Icons.note,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Row(
-                      children: [
-                        Expanded(
-                          child:
-                              ElevatedButton.icon(
-                            onPressed:
-                                pickImage,
-                            icon:
-                                const Icon(
-                              Icons.image,
-                            ),
-                            label:
-                                const Text(
-                              'إرفاق صورة POS',
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child:
-                              ElevatedButton.icon(
-                            onPressed:
-                                pickDocument,
-                            icon:
-                                const Icon(
-                              Icons.description,
-                            ),
-                            label:
-                                const Text(
-                              'PDF / Excel / Word',
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    if (imageFile != null)
-                      Card(
-                        child: ListTile(
-                          leading:
-                              const Icon(
-                            Icons.image,
-                            color:
-                                Colors.green,
-                          ),
-                          title: Text(
-                            imageFile!.name,
-                            overflow:
-                                TextOverflow.ellipsis,
-                          ),
-                          subtitle:
-                              const Text(
-                            'سيتم الحفظ في mada-images',
-                          ),
-                          trailing:
-                              IconButton(
-                            onPressed: () {
-                              setState(() {
-                                imageFile =
-                                    null;
-                              });
-                            },
-                            icon:
-                                const Icon(
-                              Icons.close,
-                              color:
-                                  Colors.red,
-                            ),
-                          ),
-                        ),
-                      ),
-                    if (documentFile != null)
-                      Card(
-                        child: ListTile(
-                          leading:
-                              const Icon(
-                            Icons.description,
-                            color:
-                                Colors.green,
-                          ),
-                          title: Text(
-                            documentFile!.name,
-                            overflow:
-                                TextOverflow.ellipsis,
-                          ),
-                          subtitle:
-                              const Text(
-                            'سيتم الحفظ في documents',
-                          ),
-                          trailing:
-                              IconButton(
-                            onPressed: () {
-                              setState(() {
-                                documentFile =
-                                    null;
-                              });
-                            },
-                            icon:
-                                const Icon(
-                              Icons.close,
-                              color:
-                                  Colors.red,
-                            ),
-                          ),
-                        ),
-                      ),
-                    const SizedBox(height: 20),
-                    SizedBox(
-                      height: 55,
-                      child:
-                          ElevatedButton(
-                        onPressed:
-                            saving
-                                ? null
-                                : saveRecord,
-                        child: saving
-                            ? const SizedBox(
-                                width: 25,
-                                height: 25,
-                                child:
-                                    CircularProgressIndicator(),
-                              )
-                            : const Text(
-                                'حفظ السجل',
-                                style:
-                                    TextStyle(
-                                  fontSize: 18,
-                                  fontWeight:
-                                      FontWeight.bold,
-                                ),
-                              ),
-                      ),
-                    ),
-                    const SizedBox(height: 35),
-                    const Text(
-                      'السجلات السابقة',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight:
-                            FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 15),
-                    if (loadingRecords)
-                      const Center(
-                        child:
-                            CircularProgressIndicator(),
-                      ),
-                    if (!loadingRecords &&
-                        records.isEmpty)
-                      const Card(
-                        child: Padding(
-                          padding:
-                              EdgeInsets.all(20),
-                          child: Center(
-                            child: Text(
-                              'لا توجد سجلات حتى الآن',
-                            ),
-                          ),
-                        ),
-                      ),
-                    ...records.map(
-                      buildRecordCard,
-                    ),
-                  ],
+        body: RefreshIndicator(
+          onRefresh: loadRecords,
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              buildForm(),
+
+              const SizedBox(height: 25),
+
+              const Text(
+                'السجلات المالية',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-            ),
+
+              const SizedBox(height: 12),
+
+              if (loading)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(30),
+                    child: CircularProgressIndicator(),
+                  ),
+                )
+              else if (records.isEmpty)
+                const Card(
+                  child: Padding(
+                    padding: EdgeInsets.all(25),
+                    child: Center(
+                      child: Text(
+                        'لا توجد سجلات حتى الآن',
+                      ),
+                    ),
+                  ),
+                )
+              else
+                ...records.map(buildRecordCard),
+            ],
           ),
         ),
       ),
     );
   }
 
+  // ============================================================
+  // FORM
+  // ============================================================
+
+  Widget buildForm() {
+    return Card(
+      elevation: 3,
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment:
+              CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'إضافة سجل مالي',
+              style: TextStyle(
+                fontSize: 21,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(height: 18),
+
+            InkWell(
+              onTap: selectDate,
+              child: InputDecorator(
+                decoration: const InputDecoration(
+                  labelText: 'تاريخ العملية',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.calendar_month),
+                ),
+                child: Text(
+                  '${selectedDate.day.toString().padLeft(2, '0')}/'
+                  '${selectedDate.month.toString().padLeft(2, '0')}/'
+                  '${selectedDate.year}',
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 14),
+
+            buildTextField(
+              controller: branchController,
+              label: 'الفرع',
+              icon: Icons.business,
+            ),
+
+            const SizedBox(height: 14),
+
+            buildNumberField(
+              controller: posSalesController,
+              label: 'مبيعات نقاط البيع POS',
+              icon: Icons.point_of_sale,
+            ),
+
+            const SizedBox(height: 14),
+
+            buildNumberField(
+              controller: requiredDepositController,
+              label: 'المبلغ المطلوب تحويله للبنك',
+              icon: Icons.account_balance,
+            ),
+
+            const SizedBox(height: 14),
+
+            TextField(
+              controller: totalController,
+              readOnly: true,
+              decoration: const InputDecoration(
+                labelText: 'إجمالي المبلغ',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.calculate),
+              ),
+            ),
+
+            const SizedBox(height: 14),
+
+            buildNumberField(
+              controller: actualDepositController,
+              label: 'المبلغ المحول فعلياً',
+              icon: Icons.payments,
+            ),
+
+            const SizedBox(height: 14),
+
+            buildTextField(
+              controller: notesController,
+              label: 'ملاحظات',
+              icon: Icons.notes,
+              maxLines: 3,
+            ),
+
+            const SizedBox(height: 18),
+
+            OutlinedButton.icon(
+              onPressed: pickImage,
+              icon: const Icon(Icons.image),
+              label: Text(
+                selectedImage == null
+                    ? 'إرفاق صورة إيصال POS'
+                    : 'الصورة: ${selectedImage!.name}',
+              ),
+            ),
+
+            const SizedBox(height: 10),
+
+            OutlinedButton.icon(
+              onPressed: pickDocument,
+              icon: const Icon(Icons.attach_file),
+              label: Text(
+                selectedDocument == null
+                    ? 'إرفاق مستند التحويل'
+                    : 'المستند: ${selectedDocument!.name}',
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            SizedBox(
+              height: 52,
+              child: ElevatedButton.icon(
+                onPressed: saving ? null : saveRecord,
+                icon: saving
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Icon(Icons.save),
+                label: Text(
+                  saving
+                      ? 'جاري الحفظ...'
+                      : 'حفظ السجل',
+                  style: const TextStyle(
+                    fontSize: 17,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // TEXT FIELD
+  // ============================================================
+
+  Widget buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    int maxLines = 1,
+  }) {
+    return TextField(
+      controller: controller,
+      maxLines: maxLines,
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+        prefixIcon: Icon(icon),
+      ),
+    );
+  }
+
+  // ============================================================
+  // NUMBER FIELD
+  // ============================================================
+
+  Widget buildNumberField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+  }) {
+    return TextField(
+      controller: controller,
+      keyboardType: const TextInputType.numberWithOptions(
+        decimal: true,
+      ),
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+        prefixIcon: Icon(icon),
+      ),
+    );
+  }
+
+  // ============================================================
+  // RECORD CARD
+  // ============================================================
+
   Widget buildRecordCard(
     Map<String, dynamic> record,
   ) {
-    final pos =
+    final posSales =
         double.tryParse(
-              record['pos_sales']
-                  .toString(),
+              '${record['pos_sales'] ?? 0}',
             ) ??
             0;
 
-    final required =
+    final requiredDeposit =
         double.tryParse(
-              record['required_deposit']
-                  .toString(),
+              '${record['required_deposit'] ?? 0}',
             ) ??
             0;
 
     final total =
         double.tryParse(
-              record['total_amount']
-                  .toString(),
+              '${record['total_amount'] ?? 0}',
             ) ??
-            (pos + required);
+            (posSales + requiredDeposit);
 
     final actual =
         double.tryParse(
-              record['actual_deposit']
-                  .toString(),
+              '${record['actual_deposit'] ?? 0}',
             ) ??
             0;
 
-    final difference =
-        actual - total;
+    final difference = actual - total;
 
     final imagePath =
-        record['pos_receipt_image'];
+        record['pos_receipt_image']?.toString();
 
     final documentPath =
-        record['bank_deposit_receipt'];
+        record['bank_deposit_receipt']?.toString();
 
     return Card(
-      margin:
-          const EdgeInsets.only(
-        bottom: 14,
-      ),
+      margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
-        padding:
-            const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(15),
         child: Column(
           crossAxisAlignment:
               CrossAxisAlignment.stretch,
           children: [
-            Text(
-              record['branch']
-                      ?.toString() ??
-                  '',
-              style:
-                  const TextStyle(
-                fontSize: 20,
-                fontWeight:
-                    FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'التاريخ: ${record['transaction_date'] ?? ''}',
-            ),
-            const Divider(),
-            Text(
-              'مبيعات POS: ${money(pos)}',
-            ),
-            Text(
-              'المبلغ المطلوب للبنك: ${money(required)}',
-            ),
-            Text(
-              'الإجمالي: ${money(total)}',
-              style:
-                  const TextStyle(
-                fontWeight:
-                    FontWeight.bold,
-              ),
-            ),
-            Text(
-              'الإيداع الفعلي: ${money(actual)}',
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'الفرق: ${money(difference)}',
-              style:
-                  TextStyle(
-                fontWeight:
-                    FontWeight.bold,
-                color:
-                    difference == 0
-                        ? Colors.green
-                        : difference > 0
-                            ? Colors.blue
-                            : Colors.red,
-              ),
-            ),
-            if (record['notes'] != null &&
-                record['notes']
-                    .toString()
-                    .trim()
-                    .isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(
-                'الملاحظات: ${record['notes']}',
-              ),
-            ],
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
+            Row(
               children: [
-                if (imagePath != null &&
-                    imagePath
-                        .toString()
-                        .isNotEmpty)
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      openFile(
-                        bucket:
-                            'mada-images',
-                        path:
-                            imagePath.toString(),
-                      );
-                    },
-                    icon:
-                        const Icon(
-                      Icons.image,
-                    ),
-                    label:
-                        const Text(
-                      'فتح صورة POS',
+                Expanded(
+                  child: Text(
+                    '${record['branch'] ?? ''}',
+                    style: const TextStyle(
+                      fontSize: 19,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                if (documentPath != null &&
-                    documentPath
-                        .toString()
-                        .isNotEmpty)
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      openFile(
-                        bucket:
-                            'documents',
-                        path:
-                            documentPath
-                                .toString(),
-                      );
-                    },
-                    icon:
-                        const Icon(
-                      Icons.description,
-                    ),
-                    label:
-                        const Text(
-                      'فتح المستند',
-                    ),
-                  ),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    deleteRecord(record);
-                  },
-                  style:
-                      ElevatedButton.styleFrom(
-                    backgroundColor:
-                        Colors.red,
-                    foregroundColor:
-                        Colors.white,
-                  ),
-                  icon:
-                      const Icon(
-                    Icons.delete,
-                  ),
-                  label:
-                      const Text(
-                    'حذف',
+                ),
+                IconButton(
+                  onPressed: () => deleteRecord(record),
+                  icon: const Icon(
+                    Icons.delete_outline,
                   ),
                 ),
               ],
             ),
+
+            const Divider(),
+
+            infoRow(
+              'التاريخ',
+              '${record['transaction_date'] ?? ''}',
+            ),
+
+            infoRow(
+              'مبيعات POS',
+              posSales.toStringAsFixed(2),
+            ),
+
+            infoRow(
+              'المبلغ المطلوب تحويله',
+              requiredDeposit.toStringAsFixed(2),
+            ),
+
+            infoRow(
+              'الإجمالي',
+              total.toStringAsFixed(2),
+            ),
+
+            infoRow(
+              'المحول فعلياً',
+              actual.toStringAsFixed(2),
+            ),
+
+            infoRow(
+              'الفرق',
+              difference.toStringAsFixed(2),
+            ),
+
+            if (record['notes'] != null &&
+                record['notes'].toString().isNotEmpty)
+              infoRow(
+                'ملاحظات',
+                record['notes'].toString(),
+              ),
+
+            const SizedBox(height: 10),
+
+            if (imagePath != null &&
+                imagePath.isNotEmpty)
+              OutlinedButton.icon(
+                onPressed: () {
+                  openStorageFile(
+                    'mada-images',
+                    imagePath,
+                  );
+                },
+                icon: const Icon(Icons.image),
+                label: const Text(
+                  'فتح إيصال POS',
+                ),
+              ),
+
+            if (documentPath != null &&
+                documentPath.isNotEmpty)
+              OutlinedButton.icon(
+                onPressed: () {
+                  openStorageFile(
+                    'documents',
+                    documentPath,
+                  );
+                },
+                icon: const Icon(Icons.description),
+                label: const Text(
+                  'فتح مستند التحويل',
+                ),
+              ),
           ],
         ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // INFO ROW
+  // ============================================================
+
+  Widget infoRow(
+    String title,
+    String value,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        vertical: 4,
+      ),
+      child: Row(
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 155,
+            child: Text(
+              '$title:',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(value),
+          ),
+        ],
       ),
     );
   }
