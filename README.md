@@ -1,116 +1,246 @@
-# zajil-express
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zajil Express Trading</title>
-    <link rel="stylesheet" href="style.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    
-    <!-- مكتبات Firebase السحابية -->
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
-</head>
-<body>
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:file_picker/file_picker.dart';
 
-    <!-- شاشة تسجيل الدخول -->
-    <div id="loginSection" class="auth-card">
-        <div class="brand">
-            <h1>Zajil Express Trading</h1>
-            <p>تسجيل الدخول للنظام السحابي</p>
-        </div>
-        <form id="loginForm">
-            <div class="form-group">
-                <label>البريد الإلكتروني / اسم المستخدم:</label>
-                <input type="email" id="loginEmail" required placeholder="admin@zajil.com">
-            </div>
-            <div class="form-group">
-                <label>كلمة المرور:</label>
-                <input type="password" id="loginPassword" required placeholder="******">
-            </div>
-            <button type="submit" class="btn-primary">دخول النظام</button>
-        </form>
-    </div>
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
 
-    <!-- النظام الرئيسي (يظهر فقط بعد تسجيل الدخول) -->
-    <div id="mainApp" class="container" style="display: none;">
-        <header>
-            <div class="brand">
-                <h1>Zajil Express Trading</h1>
-                <p>نظام إدخال الحسابات اليومية والأرشيف السحابي</p>
-            </div>
-            <button id="logoutBtn" class="btn-logout">تسجيل الخروج 🚪</button>
-        </header>
+  // تهيئة Supabase ببيانات المشروع
+  await Supabase.initialize(
+    url: 'https://fpufamgncxusgvxiiucg.supabase.co',
+    anonKey: 'EyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwdWZhbWduY3h1c2d2eGlpdWNnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxOTQ0NTEsImV4cCI6MjEwMzc3MDQ1MX0.l9sV4MWlom8jqBhoc2T9gGc0MALtzkKxevBqjjPll5I',
+  );
 
-        <!-- نموذج الإدخال اليومي -->
-        <section class="card">
-            <h2>تسجيل حركة يومية جديدة</h2>
-            <form id="entryForm">
-                <div class="form-grid-3">
-                    <div class="form-group">
-                        <label>التاريخ:</label>
-                        <input type="date" id="entryDate" required>
-                    </div>
-                    <div class="form-group">
-                        <label>الموازنة التقديرية (SAR):</label>
-                        <input type="number" step="0.01" id="budget" placeholder="0.00">
-                    </div>
-                    <div class="form-group">
-                        <label>إجمالي المقبوضات / الإيرادات (SAR):</label>
-                        <input type="number" step="0.01" id="income" placeholder="0.00" required>
-                    </div>
-                </div>
+  runApp(const ZajilFinancialApp());
+}
 
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>إجمالي المصاريف / أجور الورشة (SAR):</label>
-                        <input type="number" step="0.01" id="expenses" placeholder="0.00" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>📷 صور ورقة مدى / الأوراق (من الجوال أو الكاميرا):</label>
-                        <input type="file" id="posImageInput" accept="image/*" multiple class="file-control">
-                        <small class="help-text">اختر الصور المحفوظة بالجوال أو التقط صورة فورية.</small>
-                    </div>
-                </div>
+final supabase = Supabase.instance.client;
 
-                <div class="form-group">
-                    <label>📄 ملفات PDF / الحوالات البنكية (المحفوظة بالجوال):</label>
-                    <input type="file" id="pdfFileInput" accept="application/pdf" multiple class="file-control">
-                    <small class="help-text">اختر ملفات الـ PDF المحفوظة في ذاكرة الجوال (Downloads/Files).</small>
-                </div>
+class ZajilFinancialApp extends StatelessWidget {
+  const ZajilFinancialApp({super.key});
 
-                <div class="form-group">
-                    <label>ملاحظات اليوم والعمل:</label>
-                    <textarea id="notes" rows="3" placeholder="اكتب أي ملاحظات خاصة بالحسابات أو الحوالات..."></textarea>
-                </div>
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'نظام السجلات المالية - زاجل',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        primarySwatch: Colors.green,
+        useMaterial3: true,
+      ),
+      home: const FinancialRecordScreen(),
+    );
+  }
+}
 
-                <button type="submit" id="saveBtn" class="btn-primary">حفظ في الحساب السحابي ☁️</button>
-            </form>
-        </section>
+class FinancialRecordScreen extends StatefulWidget {
+  const FinancialRecordScreen({super.key});
 
-        <!-- مراجعة الأرشيف وتصدير التقارير -->
-        <section class="card">
-            <h2>مراجعة الأرشيف السحابي وتصدير التقارير</h2>
-            <div class="search-box">
-                <input type="date" id="searchDate">
-                <button id="searchBtn" class="btn-primary">بحث باليوم</button>
-                <button id="resetBtn" class="btn-outline">عرض الكل</button>
-            </div>
+  @override
+  State<FinancialRecordScreen> createState() => _FinancialRecordScreenState();
+}
 
-            <div id="resultsContainer" class="results-list"></div>
-        </section>
-    </div>
+class _FinancialRecordScreenState extends State<FinancialRecordScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final TextEditingController _amountController = TextEditingController();
+  final TextEditingController _notesController = TextEditingController();
 
-    <!-- نافذة معاينة الصور -->
-    <div id="imageModal" class="modal">
-        <span class="close-modal" id="closeModal">&times;</span>
-        <img class="modal-content" id="modalImg">
-    </div>
+  String _selectedCategory = 'صيانة';
+  File? _selectedFile;
+  String? _fileName;
+  bool _isUploading = false;
+  String _fileType = 'image'; // 'image' أو 'document'
 
-    <script src="app.js"></script>
-</body>
-</html>
+  final List<String> _categories = ['صيانة', 'وقود', 'مصاريف تشغيلية', 'رواتب', 'أخرى'];
+
+  // اختيار ملف من الجهاز
+  Future<void> _pickFile(FileType type, String categoryType) async {
+    final result = await FilePicker.platform.pickFiles(type: type);
+
+    if (result != null && result.files.single.path != null) {
+      setState(() {
+        _selectedFile = File(result.files.single.path!);
+        _fileName = result.files.single.name;
+        _fileType = categoryType;
+      });
+    }
+  }
+
+  // رفع الملف وإدخال السجل في قاعدة البيانات
+  Future<void> _submitData() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isUploading = true;
+    });
+
+    try {
+      String? attachmentUrl;
+
+      // 1. رفع المرفق إن وجد
+      if (_selectedFile != null && _fileName != null) {
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final uploadPath = '$timestamp\_$_fileName';
+        final bucketName = _fileType == 'image' ? 'mada-images' : 'documents';
+
+        // الرفع للحاوية المناسبة
+        await supabase.storage.from(bucketName).upload(uploadPath, _selectedFile!);
+
+        // جلب الرابط العام للملف
+        attachmentUrl = supabase.storage.from(bucketName).getPublicUrl(uploadPath);
+      }
+
+      // 2. إدخال السجل المالي في جدول Financial_records
+      await supabase.from('Financial_records').insert({
+        'amount': double.parse(_amountController.text),
+        'category': _selectedCategory,
+        'notes': _notesController.text,
+        'attachment_url': attachmentUrl,
+        'created_at': DateTime.now().toIso8601String(),
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم حفظ السجل المالي بنجاح!')),
+        );
+        _resetForm();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('حدث خطأ أثناء الحفظ: $e')),
+        );
+      }
+    } finally {
+      setState(() {
+        _isUploading = false;
+      });
+    }
+  }
+
+  void _resetForm() {
+    _amountController.clear();
+    _notesController.clear();
+    setState(() {
+      _selectedFile = null;
+      _fileName = null;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('إضافة سجل مالي جديد'),
+        centerTitle: true,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // المبلغ
+                TextFormField(
+                  controller: _amountController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'المبلغ (SAR)',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.attach_money),
+                  ),
+                  validator: (value) => (value == null || value.isEmpty) ? 'يرجى إدخال المبلغ' : null,
+                ),
+                const SizedBox(height: 16),
+
+                // التصنيف
+                DropdownButtonFormField<String>(
+                  value: _selectedCategory,
+                  decoration: const InputDecoration(
+                    labelText: 'التصنيف',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.category),
+                  ),
+                  items: _categories.map((cat) => DropdownMenuItem(value: cat, child: Text(cat))).toList(),
+                  onChanged: (value) => setState(() => _selectedCategory = value!),
+                ),
+                const SizedBox(height: 16),
+
+                // الملاحظات
+                TextFormField(
+                  controller: _notesController,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    labelText: 'ملاحظات / بيان الصرف',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.note),
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // أزرار إرفاق الملفات
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => _pickFile(FileType.image, 'image'),
+                        icon: const Icon(Icons.image),
+                        label: const Text('إرفاق صورة/إيصال'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => _pickFile(FileType.any, 'document'),
+                        icon: const Icon(Icons.picture_as_pdf),
+                        label: const Text('إرفاق مستند (PDF/Excel)'),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+
+                // عرض اسم الملف المحدد
+                if (_fileName != null)
+                  Card(
+                    color: Colors.green.shade50,
+                    child: ListTile(
+                      leading: Icon(_fileType == 'image' ? Icons.image : Icons.insert_drive_file),
+                      title: Text(_fileName!, overflow: TextOverflow.ellipsis),
+                      subtitle: Text('سيتم الرفع إلى: ${_fileType == 'image' ? 'mada-images' : 'documents'}'),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.close, color: Colors.red),
+                        onPressed: () => setState(() {
+                          _selectedFile = null;
+                          _fileName = null;
+                        }),
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 24),
+
+                // زر حفظ السجل
+                _isUploading
+                    ? const Center(child: CircularProgressIndicator())
+                    : ElevatedButton(
+                        onPressed: _submitData,
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          backgroundColor: Colors.green,
+                        ),
+                        child: const Text(
+                          'حفظ السجل المالي',
+                          style: TextStyle(fontSize: 18, color: Colors.white),
+                        ),
+                      ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
