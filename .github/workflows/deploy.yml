@@ -22,6 +22,10 @@ jobs:
           channel: 'stable'
 
       - run: flutter pub get
+      
+      # هذا السطر ينشئ ملفات الويب التلقائية في السيرفر قبل البناء
+      - run: flutter create . --platforms=web
+
       - run: flutter build web --base-href /zajil-express/ --release
 
       - uses: actions/configure-pages@v5
