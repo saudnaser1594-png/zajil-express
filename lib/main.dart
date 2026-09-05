@@ -1,315 +1,185 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'home_page.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+// تعريف الألوان الجديدة كثوابت
+const Color primaryBlue = Color(0xFF1E3A8A); // أزرق غامق ملكي
+const Color accentGold = Color(0xFFFBBF24);  // أصفر ذهبي ساطع
 
-  await Supabase.initialize(
-    url: 'https://fpufamgncxusgvxiiucg.supabase.co',
-    anonKey: 'sb_publishable_hIFcvyNW57aF4aUapGBBWA_YC8YTIGJ',
-  );
-
-  runApp(const ZajilFinancialApp());
-}
-
-final supabase = Supabase.instance.client;
-
-class ZajilFinancialApp extends StatelessWidget {
-  const ZajilFinancialApp({super.key});
+class LoginPage extends StatefulWidget {
+  const LoginPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'زاجل Express',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.red,
-        scaffoldBackgroundColor: const Color(0xFFF8F9FA),
-      ),
-      home: StreamBuilder<AuthState>(
-        stream: supabase.auth.onAuthStateChange,
-        builder: (context, snapshot) {
-          final session = snapshot.data?.session ?? supabase.auth.currentSession;
-          if (session != null) {
-            return const DashboardScreen();
-          }
-          return const AuthScreen();
-        },
-      ),
-    );
+  State<LoginPage> createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  late final StreamSubscription<AuthState> _authSubscription;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // الاستماع لتغير حالة التسجيل والتوجيه تلقائياً
+    _authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+      final session = data.session;
+      if (session != null && mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomePage()),
+        );
+      }
+    });
   }
-}
-
-// شاشة تسجيل الدخول
-class AuthScreen extends StatefulWidget {
-  const AuthScreen({super.key});
-  @override
-  State<AuthScreen> createState() => _AuthScreenState();
-}
-
-class _AuthScreenState extends State<AuthScreen> {
-  final _email = TextEditingController();
-  final _password = TextEditingController();
-  bool _loading = false;
 
   @override
   void dispose() {
-    _email.dispose();
-    _password.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _authSubscription.cancel();
     super.dispose();
   }
 
-  Future<void> _auth(bool isSignUp) async {
-    if (_email.text.trim().isEmpty || _password.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('ادخل البريد وكلمة المرور')),
-      );
+  // دالة مشتركة للتعامل مع العمليات
+  Future<void> _handleAuth(Future<AuthResponse> Function() authMethod, String successMessage) async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
+      _showErrorSnackBar('يرجى ملء كافة الحقول');
       return;
     }
-    setState(() => _loading = true);
+
+    setState(() => _isLoading = true);
     try {
-      if (isSignUp) {
-        await supabase.auth.signUp(
-          email: _email.text.trim(),
-          password: _password.text.trim(),
-        );
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('تم إنشاء الحساب بنجاح')),
-          );
-        }
-      } else {
-        await supabase.auth.signInWithPassword(
-          email: _email.text.trim(),
-          password: _password.text.trim(),
-        );
-      }
+      await authMethod();
+      _showSuccessSnackBar(successMessage);
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ: $e')),
-        );
-      }
+      _showErrorSnackBar('فشلت العملية: $e');
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: Colors.redAccent));
+  }
+
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: primaryBlue));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 400),
-          padding: const EdgeInsets.all(24),
-          child: Card(
-            elevation: 4,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.account_balance_wallet, size: 60, color: Colors.red),
-                  const SizedBox(height: 12),
-                  const Text('نظام زاجل المالي', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 24),
-                  TextField(controller: _email, decoration: const InputDecoration(labelText: 'البريد الالكتروني', border: OutlineInputBorder())),
-                  const SizedBox(height: 12),
-                  TextField(controller: _password, obscureText: true, decoration: const InputDecoration(labelText: 'كلمة المرور', border: OutlineInputBorder())),
-                  const SizedBox(height: 24),
-                  _loading 
-                      ? const CircularProgressIndicator() 
-                      : Column(
-                          children: [
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(backgroundColor: Colors.red, minimumSize: const Size.fromHeight(45)),
-                              onPressed: () => _auth(false),
-                              child: const Text('تسجيل الدخول', style: TextStyle(color: Colors.white)),
-                            ),
-                            TextButton(
-                              onPressed: () => _auth(true),
-                              child: const Text('انشاء حساب جديد'),
-                            ),
-                          ],
-                        ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// شاشة السجلات المالية
-class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
-  @override
-  State<DashboardScreen> createState() => _DashboardScreenState();
-}
-
-class _DashboardScreenState extends State<DashboardScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _branch = TextEditingController();
-  final _pos = TextEditingController();
-  final _required = TextEditingController();
-  final _actual = TextEditingController();
-  final _total = TextEditingController();
-  final _notes = TextEditingController();
-  bool _saving = false;
-
-  @override
-  void dispose() {
-    _branch.dispose();
-    _pos.dispose();
-    _required.dispose();
-    _actual.dispose();
-    _total.dispose();
-    _notes.dispose();
-    super.dispose();
-  }
-
-  Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
-    setState(() => _saving = true);
-    try {
-      final user = supabase.auth.currentUser;
-      await supabase.from('financial_records').insert({
-        'user_id': user!.id,
-        'branch': _branch.text.trim(),
-        'pos_sales': double.tryParse(_pos.text) ?? 0,
-        'required_deposit': double.tryParse(_required.text) ?? 0,
-        'actual_deposit': double.tryParse(_actual.text) ?? 0,
-        'total_amount': double.tryParse(_total.text) ?? 0,
-        'notes': _notes.text.trim(),
-        'transaction_date': DateTime.now().toIso8601String().split('T')[0],
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم الحفظ بنجاح'), backgroundColor: Colors.green),
-        );
-        _formKey.currentState!.reset();
-        _branch.clear();
-        _pos.clear();
-        _required.clear();
-        _actual.clear();
-        _total.clear();
-        _notes.clear();
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('فشل: $e'), backgroundColor: Colors.red),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('زاجل Express - السجلات المالية', style: TextStyle(color: Colors.white)),
-        backgroundColor: Colors.red,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout, color: Colors.white),
-            onPressed: () async => await supabase.auth.signOut(),
-          )
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Center(
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 600),
-            child: Card(
-              elevation: 3,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      backgroundColor: primaryBlue, // الخلفية الأساسية باللون الأزرق
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return Center(
+            child: SingleChildScrollView(
               child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Form(
-                  key: _formKey,
+                padding: const EdgeInsets.all(24.0),
+                child: Container(
+                  constraints: const BoxConstraints(maxWidth: 400),
+                  padding: const EdgeInsets.all(32.0),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: accentGold, width: 2), // إطار ذهبي
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 5))
+                    ],
+                  ),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text('إضافة سجل جديد', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                      const Divider(height: 24),
-                      TextFormField(
-                        controller: _branch,
-                        decoration: const InputDecoration(labelText: 'اسم الفرع', border: OutlineInputBorder()),
-                        validator: (v) => v!.isEmpty ? 'مطلوب' : null,
+                      // الأيقونة باللون الأزرق
+                      const Icon(Icons.account_balance_wallet, size: 80, color: primaryBlue),
+                      const SizedBox(height: 20),
+                      // العنوان باللون الأزرق
+                      const Text(
+                        'نظام زاجل المالي',
+                        style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: primaryBlue),
                       ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextFormField(
-                              controller: _pos,
-                              keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(labelText: 'مبيعات POS', border: OutlineInputBorder()),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: TextFormField(
-                              controller: _required,
-                              keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(labelText: 'الإيداع المطلوب', border: OutlineInputBorder()),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextFormField(
-                              controller: _actual,
-                              keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(labelText: 'الإيداع الفعلي', border: OutlineInputBorder()),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: TextFormField(
-                              controller: _total,
-                              keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(labelText: 'المبلغ الإجمالي', border: OutlineInputBorder()),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: _notes,
-                        maxLines: 3,
-                        decoration: const InputDecoration(labelText: 'ملاحظات', border: OutlineInputBorder()),
+                      const SizedBox(height: 40),
+                      // حقول الإدخال بتنسيق ذهبي
+                      TextField(
+                        controller: _emailController,
+                        decoration: _buildInputDecoration('البريد الإلكتروني', Icons.email),
+                        keyboardType: TextInputType.emailAddress,
                       ),
                       const SizedBox(height: 20),
-                      _saving
-                          ? const Center(child: CircularProgressIndicator())
-                          : ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red,
-                                minimumSize: const Size.fromHeight(48),
-                              ),
-                              onPressed: _save,
-                              icon: const Icon(Icons.save, color: Colors.white),
-                              label: const Text('حفظ السجل', style: TextStyle(color: Colors.white, fontSize: 16)),
+                      TextField(
+                        controller: _passwordController,
+                        decoration: _buildInputDecoration('كلمة المرور', Icons.lock),
+                        obscureText: true,
+                      ),
+                      const SizedBox(height: 40),
+                      // أزرار العمليات
+                      if (_isLoading)
+                        const CircularProgressIndicator(color: accentGold)
+                      else ...[
+                        // زر تسجيل الدخول (أزرق بخط ذهبي)
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: primaryBlue,
+                              foregroundColor: accentGold,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                             ),
+                            onPressed: () => _handleAuth(
+                              () => Supabase.instance.client.auth.signInWithPassword(email: _emailController.text, password: _passwordController.text),
+                              'تم تسجيل الدخول!'
+                            ),
+                            child: const Text('تسجيل الدخول', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        // زر إنشاء حساب (ذهبي بخط أزرق)
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: primaryBlue,
+                              backgroundColor: accentGold,
+                              side: const BorderSide(color: accentGold, width: 2),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                            onPressed: () => _handleAuth(
+                              () => Supabase.instance.client.auth.signUp(email: _emailController.text, password: _passwordController.text),
+                              'تم إنشاء الحساب بنجاح!'
+                            ),
+                            child: const Text('إنشاء حساب جديد', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
               ),
             ),
-          ),
-        ),
+          );
+        },
       ),
+    );
+  }
+
+  // تنسيق حقول الإدخال
+  InputDecoration _buildInputDecoration(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: primaryBlue),
+      prefixIcon: Icon(icon, color: primaryBlue),
+      filled: true,
+      fillColor: Colors.grey[50],
+      enabledBorder: OutlineInputBorder(borderSide: const BorderSide(color: primaryBlue), borderRadius: BorderRadius.circular(10)),
+      focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: accentGold, width: 2), borderRadius: BorderRadius.circular(10)),
     );
   }
 }
