@@ -7,6 +7,7 @@ void main() async {
   await Supabase.initialize(
     url: 'https://fpufamgncxusgvxiiucg.supabase.co',
     anonKey: 'sb_publishable_hIFcvyNW57aF4aUapGBBWA_YC8YTIGJ',
+    
   );
 
   runApp(const ZajilFinancialApp());
