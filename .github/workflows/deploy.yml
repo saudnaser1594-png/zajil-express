@@ -23,7 +23,7 @@ jobs:
 
       - run: flutter pub get
       
-      # هذا السطر ينشئ ملفات الويب التلقائية في السيرفر قبل البناء
+      # تم ضبط المسافة هنا بوضوح بين النقطة وكلمة platforms
       - run: flutter create . --platforms=web
 
       - run: flutter build web --base-href /zajil-express/ --release
