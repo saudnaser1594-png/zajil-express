@@ -23,8 +23,8 @@ jobs:
 
       - run: flutter pub get
       
-      # تم ضبط المسافة هنا بوضوح بين النقطة وكلمة platforms
-      - run: flutter create . --platforms=web
+      # تم تحديد اسم مشروع متوافق مع Dart باستخدام الشرطة السفلية
+      - run: flutter create . --platforms=web --project-name zajil_express
 
       - run: flutter build web --base-href /zajil-express/ --release
 
